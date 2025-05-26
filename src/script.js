@@ -1,0 +1,205 @@
+const token = localStorage.getItem('token');
+
+// Redirect ke login jika belum login
+if (
+  !token &&
+  (window.location.pathname.includes('index.html') ||
+    window.location.pathname === '/' ||
+    window.location.pathname.endsWith('/'))
+) {
+  window.location.href = 'login.html';
+}
+
+const API_URL = "http://localhost:5000";
+
+
+
+// Cek apakah token ada
+async function fetchLukisan() {
+  try {
+    const response = await fetch(`${API_URL}/lukisan`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      alert("Sesi login Anda telah habis. Silakan login kembali.");
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text);
+    }
+
+    const lukisanList = await response.json();
+
+    renderLukisanList(lukisanList); // pakai fungsi render ini
+
+  } catch (error) {
+    console.error("Error fetching lukisan:", error);
+  }
+}
+
+// ✅ Tambah lukisan
+async function addLukisan() {
+  const judul = document.getElementById("judul").value.trim();
+  const deskripsi = document.getElementById("deskripsi").value.trim();
+  const gambar = document.getElementById("gambar").value.trim();
+
+  if (!judul || !deskripsi || !gambar) {
+    alert("⚠️ Harap isi semua kolom!");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/lukisan`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ judul, deskripsi, gambar }),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    document.getElementById("judul").value = "";
+    document.getElementById("deskripsi").value = "";
+    document.getElementById("gambar").value = "";
+
+    fetchLukisan();
+  } catch (error) {
+    console.error("Error adding lukisan:", error);
+  }
+}
+
+async function updateLukisan(id) {
+  const newJudul = prompt("🖌️ Masukkan judul baru lukisan:");
+  const newDeskripsi = prompt("📝 Masukkan deskripsi baru lukisan:");
+  const newGambar = prompt("🖼️ Masukkan URL gambar baru:");
+
+  if (!newJudul || !newDeskripsi || !newGambar) return;
+
+  try {
+    await fetch(`${API_URL}/lukisan/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        judul: newJudul,
+        deskripsi: newDeskripsi,
+        gambar: newGambar
+      }),
+    });
+
+    fetchLukisan(); // Refresh daftar lukisan setelah edit
+  } catch (error) {
+    console.error("Error editing lukisan:", error);
+  }
+}
+
+
+// ✅ Hapus lukisan
+async function deleteLukisan(id) {
+  if (!confirm("⚠️ Yakin ingin menghapus lukisan ini?")) return;
+
+  try {
+    await fetch(`${API_URL}/lukisan/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    fetchLukisan();
+  } catch (error) {
+    console.error("Error deleting lukisan:", error);
+  }
+}
+
+async function fetchUsers() {
+  try {
+    const response = await fetch(`${API_URL}/users`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      alert("Sesi login Anda telah habis. Silakan login kembali.");
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text);
+    }
+
+    const users = await response.json();
+
+    const tbody = document.getElementById("userTableBody");
+    tbody.innerHTML = "";
+
+    users.forEach(user => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${user.id}</td>
+        <td>${user.username || "-"}</td>
+        <td>${user.email}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  }
+}
+
+// ✅ Tombol logout
+window.addEventListener("DOMContentLoaded", () => {
+  const logoutBtn = document.createElement("button");
+  logoutBtn.textContent = "Logout";
+  logoutBtn.style.position = "fixed";
+  logoutBtn.style.top = "24px";
+  logoutBtn.style.right = "32px";
+  logoutBtn.style.padding = "10px 18px";
+  logoutBtn.style.backgroundColor = "#e23636";
+  logoutBtn.style.color = "#fff";
+  logoutBtn.style.border = "none";
+  logoutBtn.style.borderRadius = "8px";
+  logoutBtn.style.fontWeight = "bold";
+  logoutBtn.style.fontSize = "16px";
+  logoutBtn.style.cursor = "pointer";
+  logoutBtn.style.zIndex = "1000";
+  logoutBtn.onmouseover = () => logoutBtn.style.backgroundColor = "#c01c1c";
+  logoutBtn.onmouseout = () => logoutBtn.style.backgroundColor = "#e23636";
+  logoutBtn.onclick = function () {
+    if (confirm("Yakin ingin logout?")) {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+  };
+  document.body.appendChild(logoutBtn);
+
+  // Form submit
+  const form = document.getElementById("formLukisan");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      addLukisan();
+    });
+  }
+
+  fetchLukisan();
+});
