@@ -3,8 +3,8 @@ service: default
 
 handlers:
   - url: /
-    static_files: src/index.html
-    upload: src/index.html
+    static_files: src/Login.html
+    upload: src/Login.html
 
   - url: /(.*)
     static_files: src/\1
