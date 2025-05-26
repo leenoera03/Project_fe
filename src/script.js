@@ -10,7 +10,7 @@ if (
   window.location.href = 'login.html';
 }
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://tcc-be-836058602525.us-central1.run.app";
 
 // Ambil dan render daftar lukisan
 async function fetchLukisan() {
