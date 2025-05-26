@@ -12,9 +12,7 @@ if (
 
 const API_URL = "http://localhost:5000";
 
-
-
-// Cek apakah token ada
+// Ambil dan render daftar lukisan
 async function fetchLukisan() {
   try {
     const response = await fetch(`${API_URL}/lukisan`, {
@@ -37,20 +35,48 @@ async function fetchLukisan() {
 
     const lukisanList = await response.json();
 
-    renderLukisanList(lukisanList); // pakai fungsi render ini
+    renderLukisanList(lukisanList);
 
   } catch (error) {
     console.error("Error fetching lukisan:", error);
   }
 }
 
-// ✅ Tambah lukisan
-async function addLukisan() {
+// Render daftar lukisan ke galeri
+function renderLukisanList(lukisanList) {
+  const container = document.getElementById('listLukisan');
+  container.innerHTML = '';
+  lukisanList.forEach(lukisan => {
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    item.innerHTML = `
+      <div class="gallery-item-image">
+        <img src="${lukisan.gambar || 'https://via.placeholder.com/320x240?text=No+Image'}" alt="${lukisan.judul}" />
+      </div>
+      <div class="gallery-item-content">
+        <h3>${lukisan.judul}</h3>
+        <p>${lukisan.deskripsi || ''}</p>
+        <div><b>Seniman:</b> ${lukisan.seniman || '-'}</div>
+        <div><b>Tahun:</b> ${lukisan.tahun || '-'}</div>
+      </div>
+      <div class="gallery-item-actions">
+        <button class="btn-edit" onclick="updateLukisan(${lukisan.id})">✏️ Edit</button>
+        <button class="btn-delete" onclick="deleteLukisan(${lukisan.id})">🗑️ Hapus</button>
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// Tambah lukisan
+async function createLukisan() {
   const judul = document.getElementById("judul").value.trim();
   const deskripsi = document.getElementById("deskripsi").value.trim();
   const gambar = document.getElementById("gambar").value.trim();
+  const seniman = document.getElementById("seniman") ? document.getElementById("seniman").value.trim() : "";
+  const tahun = document.getElementById("tahun") ? document.getElementById("tahun").value.trim() : "";
 
-  if (!judul || !deskripsi || !gambar) {
+  if (!judul || !deskripsi || !gambar || !seniman || !tahun) {
     alert("⚠️ Harap isi semua kolom!");
     return;
   }
@@ -62,7 +88,7 @@ async function addLukisan() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ judul, deskripsi, gambar }),
+      body: JSON.stringify({ judul, deskripsi, gambar, seniman, tahun }),
     });
 
     if (response.status === 401) {
@@ -74,6 +100,8 @@ async function addLukisan() {
     document.getElementById("judul").value = "";
     document.getElementById("deskripsi").value = "";
     document.getElementById("gambar").value = "";
+    if (document.getElementById("seniman")) document.getElementById("seniman").value = "";
+    if (document.getElementById("tahun")) document.getElementById("tahun").value = "";
 
     fetchLukisan();
   } catch (error) {
@@ -81,12 +109,15 @@ async function addLukisan() {
   }
 }
 
+// Edit lukisan
 async function updateLukisan(id) {
   const newJudul = prompt("🖌️ Masukkan judul baru lukisan:");
   const newDeskripsi = prompt("📝 Masukkan deskripsi baru lukisan:");
   const newGambar = prompt("🖼️ Masukkan URL gambar baru:");
+  const newSeniman = prompt("👤 Masukkan nama seniman:");
+  const newTahun = prompt("📅 Masukkan tahun:");
 
-  if (!newJudul || !newDeskripsi || !newGambar) return;
+  if (!newJudul || !newDeskripsi || !newGambar || !newSeniman || !newTahun) return;
 
   try {
     await fetch(`${API_URL}/lukisan/${id}`, {
@@ -98,18 +129,19 @@ async function updateLukisan(id) {
       body: JSON.stringify({
         judul: newJudul,
         deskripsi: newDeskripsi,
-        gambar: newGambar
+        gambar: newGambar,
+        seniman: newSeniman,
+        tahun: newTahun
       }),
     });
 
-    fetchLukisan(); // Refresh daftar lukisan setelah edit
+    fetchLukisan();
   } catch (error) {
     console.error("Error editing lukisan:", error);
   }
 }
 
-
-// ✅ Hapus lukisan
+// Hapus lukisan
 async function deleteLukisan(id) {
   if (!confirm("⚠️ Yakin ingin menghapus lukisan ini?")) return;
 
@@ -127,6 +159,7 @@ async function deleteLukisan(id) {
   }
 }
 
+// Ambil dan render user
 async function fetchUsers() {
   try {
     const response = await fetch(`${API_URL}/users`, {
@@ -166,7 +199,7 @@ async function fetchUsers() {
   }
 }
 
-// ✅ Tombol logout
+// Tombol logout
 window.addEventListener("DOMContentLoaded", () => {
   const logoutBtn = document.createElement("button");
   logoutBtn.textContent = "Logout";
@@ -197,7 +230,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (form) {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      addLukisan();
+      createLukisan();
     });
   }
 
